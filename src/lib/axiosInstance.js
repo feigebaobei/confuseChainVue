@@ -1,7 +1,10 @@
 import axios from 'axios'
 
+let isProduction = function () {
+  return window.location.host.indexOf('lixiaodan') > -1
+}
 const instance = axios.create({
-  baseURL: 'http://localhost:9800', // 本地服务端
+  baseURL: isProduction() ? 'http://lixiaodan.org:9800' : 'http://localhost:9800', // 本地服务端
   // baseURL: 'http://lixiaodan.org:9800', // 远程服务端
   // baseURL: 'http://127.0.0.1:9765/', // 模拟链节点的服务器
   // baseURL: 'https://34cd046f.ngrok.io',
