@@ -29,17 +29,32 @@
       </section>
       <!-- 链上指纹 -->
       <section class="chainFingerPrint">
-        <p>链上指纹：</p>
-        <img :src="arrows" alt="" id="bar">
+        <!-- <p>链上指纹：</p> -->
+        <img src="" alt="" id="bar">
       </section>
       <!-- 签名列表 -->
       <!-- 拥有者 -->
       <!-- 因为没有udid，所以不渲染。 -->
       <!-- <identity-card v-if="hashCont" :name="opCertifyDataItem(certifyData.needHashData.name)" :originText="hashCont"></identity-card> -->
+      <!-- 结果 -->
+      <section class="compareRes">
+        <section class="chain">
+          <p>链上多重指纹</p>
+          <p>{{hashCont}}</p>
+        </section>
+        <section class="local" v-if="hashContLocal">
+          <p>计算后的链上多重指纹</p>
+          <p>{{hashContLocal}}</p>
+        </section>
+        <section class="tip" v-if="hashContLocal">
+          <!-- <p>OK，按指纹规则重新计算与链上指纹数值完全一致，内容正确！</p> -->
+          <p>{{compareRes}}</p>
+        </section>
+      </section>
       <!-- 查验说明 -->
       <section class="ruleDecribe">
         <p>指纹计算规则说明</p>
-        <img :src="arrows" alt="" @click="changeShowRule" :class="{down: !showRule, up: showRule}">
+        <img :src="arrows" alt="" @click="changeShowRule" :class="{arrows: true, down: !showRule, up: showRule}">
         <section class="rule" v-if="showRule">
           <p>原理: 利用SM3密码散列函数,对于任何一个给定的消息，它都很容易就能运算出散列数值。一个已知的散列数值，难以去推算出原始的消息。对于两个不同的消息，散列数值不同。</p>
           <p>说明:</p>
@@ -50,7 +65,6 @@
       </section>
       <!-- button -->
       <button @click="checkCertify" class="checkCertify">查验证书</button>
-      <!-- 结果 -->
       <!-- 计算比对 -->
     <!-- 请求不到数据 -->
     <!-- <certifyCheck></certifyCheck> -->
@@ -70,7 +84,7 @@ export default {
   data () {
     return {
       templateId: '0xd74c92c0fe1f03b7b34a1ee2256bb48df13c44accaf0a02330f4b08e46ddb315',
-      temporaryId: this.$route.query.temporaryId || '0x700aa5b0bf33da121b885be22d26266a4b90b7eb774bfcf7d5962dbcb3d7e078',
+      temporaryId: this.$route.query.temporaryId, // || '0x700aa5b0bf33da121b885be22d26266a4b90b7eb774bfcf7d5962dbcb3d7e078',
       claim_sn: '',
       certifyData: {
         needHashData: {
@@ -90,6 +104,8 @@ export default {
       // idCardBg: idCardBg
       arrows: arrows,
       showRule: false, // 是否显示规则
+      hashContLocal: '',
+      compareRes: ''
     }
   },
   computed: {
@@ -110,13 +126,20 @@ export default {
       this.getData()
     },
     getData () {
+      if (!this.temporaryId) {
+        return false
+      }
       instance({
-        url: 'claim/checkValidity',
+        url: 'claim/getTemporaryCertifyData',
         method: 'post',
         data: {
           temporaryId: this.temporaryId
         }
       }).then(response => {
+        // console.log(response)
+        if (!response.data.result) {
+          return Promise.reject(new Error(response.data.message || '出错了'))
+        }
         this.claim_sn = response.data.data.claim_sn
         this.certifyData = response.data.data.certify_data || '{}'
         this.certifyData = JSON.parse(this.certifyData)
@@ -124,6 +147,7 @@ export default {
         // this.getTemplate()
         this.renderBarCode(this.claim_sn)
       }).catch(error => {
+        console.log(error)
         alert(error.message)
         // this.getTemplate()
         this.renderBarCode(this.claim_sn)
@@ -194,195 +218,66 @@ export default {
       }).catch(error => {
         console.log(error)
       })
-
     },
     changeShowRule () {
       this.showRule = !this.showRule
     },
     // 本地证书hash值后比对。同时告诉后端查验次数-1
     checkCertify () {
-      // 请求证书模板
-      // getTemplate()
-      // let that = this
-      // let p = new Promise((resolve) => {
-      //     console.log('this', this, this.template)
-      //   if (that.template.desc) {
-      //     console.log('this', this)
-      //     resolve(that.template)
-      //   } else {
-      //     // resolve(instance({
-      //     //   url: 'proxyChain/getTemplate',
-      //     //   method: 'post',
-      //     //   data: {
-      //     //     templateId: that.templateId
-      //     //   }
-      //     // })).then(response => {
-      //     //   return response.data.data.
-      //     // })
-
-      //     return instance({
-      //       url: 'proxyChain/getTemplate',
-      //       method: 'post',
-      //       data: {
-      //         templateId: that.templateId
-      //       }
-      //     }).then(response => {
-      //       resolve(response.data.data.result.meta_cont)
-      //     })
-      //   }
-      // })
-
-
-
-
-      // let p = null
-      // if (this.template.desc) {
-      //   p = Promise.resolve(this.template.desc)
-      // } else {
-      //   p = instance({
-      //     url: 'proxyChain/getTemplate',
-      //     method: 'post',
-      //     data: {
-      //       templateId: this.templateId
-      //     }
-      //   }).then(response => {
-      //     this.template = JSON.parse(response.data.data.result.meta_cont)
-      //     return this.template.desc
-      //   })
-      // }
-      // // p.then(response => {
-      // //   // console.log('response', response, response.data.data.result.meta_cont)
-      // //   // this.template = JSON.parse(response.data.data.result.meta_cont)
-      // //   // this.template = JSON.parse(response)
-      // //   // this.template = response
-      // //   // this.template = JSON.parse(this.template)
-      // //   // this.template = response
-      // //   // this.template = response
-      // //   console.log(this.template)
-      // //   return this.template.desc
-      // // })
-      // p.then(desc => {
-      //   // console.log('response', response)
-      //   // return
-      //   // console.log(this.template)
-      //   // console.log(tokenSDKClient)
-
-      //   // let desc = that.template.desc
-      //   let hash = new tokenSDKClient.Keccak(256)
-      //   for (let [key, value] of Object.entries(this.certifyData.needHashData)) {
-      //     let hashStr = ''
-      //     let reg = ''
-      //     if (value.indexOf('0x') === 0 && value.length === 38) { // 已经被hash了
-      //       hashStr = value
-      //     } else {
-      //       reg = new RegExp(`\\$${key}\\$`, 'ig')
-      //       hash.update(value)
-      //       hashStr = hash.digest()
-      //       hash.reset()
-      //     }
-      //     desc.replace(reg, hashStr)
-      //   }
-      //   hash.update(desc)
-      //   let hashContLocal = hash.digest()
-      //   if (hashContLocal === this.hashCont) {
-      //     alert('ko')
-      //   } else {
-      //     alert('no')
-      //   }
-      // }).catch(error => {
-      //   console.log(error)
-      // })
-
-      // if (this.template.desc) {
-
-      // } else {
-      //   let templateId = '0xd74c92c0fe1f03b7b34a1ee2256bb48df13c44accaf0a02330f4b08e46ddb315'
-      //   instance({
-      //     url: 'proxyChain/getTemplate',
-      //     method: 'post',
-      //     data: {
-      //       templateId: templateId
-      //     }
-      //   }).then(response => {
-      //     // console.log(response.data)
-      //     // console.log(response.data.data.result.meta_cont)
-      //     this.template = JSON.parse(response.data.data.result.meta_cont)
-      //     let desc = this.template.desc
-      //     let hash = new tokenSDKClient.Keccak(256)
-      //     for (let [key, value] of Object.entries(this.certifyData)) {
-      //       let reg = new RegExp(`\\$${key}\\$`, 'ig')
-      //       hash.update(value)
-      //       let hashStr = hash.digest()
-      //       desc.replace(reg, hashStr)
-      //       hash.reset()
-      //     }
-      //     hash.update(desc)
-      //     let hashContLocal = hash.digest()
-      //     hash.reset()
-      //     if (hashContLocal === this.hashCont) {
-      //       alert('ok')
-      //     } else {
-      //       alert('no')
-      //     }
-      //     // this.template = JSON.parse(this.template)
-      //   }).catch(error => {
-      //     console.log(error)
-      //   })
-      // }
-
-
-      instance({
-        url: 'proxyChain/getTemplate',
-        method: 'post',
-        data: {
-          templateId: this.templateId
+      if (this.compareRes) {
+        alert('已经查验过该证书，请不要多次查验。')
+        return
+      }
+      let p = new Promise(resolve => {
+        if (this.template.desc) {
+          resolve(this.template.desc)
+        } else {
+          instance({
+            url: 'proxyChain/getTemplate',
+            method: 'post',
+            data: {
+              templateId: this.templateId
+            }
+          }).then(response => {
+            this.template = JSON.parse(response.data.data.result.meta_cont)
+            resolve(this.template.desc)
+          })
         }
-      }).then(response => {
-        this.template = JSON.parse(response.data.data.result.meta_cont)
-        let desc = this.template.desc
-        // return desc
+      })
+      p.then(desc => {
         let hash = new tokenSDKClient.Keccak(256)
-        // console.log('desc', desc)
         for (let [key, value] of Object.entries(this.certifyData.needHashData)) {
           let hashStr = ''
-          // let reg = `\$${key}\$`
-          // let reg = new RegExp(`\\$${key}\\$`, 'ig')
-          let reg = '$' + key + '$'
-          // console.log(key, value, reg)
-          desc.replace('$' + key + '$', value)
-          // console.log('desc', desc)
-          if (value.indexOf('0x') === 0 && value.length === 38) { // 已经被hash了
+          let reg = new RegExp(`\\$${key}\\$`, 'ig')
+          if (value.indexOf('0x') === 0 && value.length === 66) { // 已经被hash了
             hashStr = value
           } else {
-            // reg = new RegExp(`\\$${key}\\$`, 'ig')
-            // console.log(reg)
-            // console.log(value)
             hash.update(value)
             hashStr = hash.digest()
-            // console.log(hashStr)
             hashStr = '0x' + tokenSDKClient.utils.bytesToStrHex(hashStr)
-            // console.log(hashStr)
             hash.reset()
           }
-          // console.log(desc, reg, hashStr)
-          // console.log('desc', desc)
           desc = desc.replace(reg, hashStr)
         }
-        console.log(desc)
         hash.update(desc)
-        let hashContLocal = hash.digest()
-        hashContLocal = '0x' + tokenSDKClient.utils.bytesToStrHex(hashContLocal)
+        this.hashContLocal = hash.digest()
+        this.hashContLocal = '0x' + tokenSDKClient.utils.bytesToStrHex(this.hashContLocal)
         hash.reset()
-        console.log(hashContLocal)
-        if (this.hashCont) {
-          alert('ok')
+        if (this.hashContLocal === this.hashCont) {
+          this.compareRes = 'OK，按指纹规则重新计算与链上指纹数值完全一致，内容正确！'
+        } else {
+          this.compareRes = 'NO，按指纹规则重新计算与链上指纹数值不一致，内容错误！'
         }
-      // }).then(desc => {
-      //   console.log(desc)
-      //   let key = 'name'
-      //   let value = '234567'
-      //   desc = desc.replace('$' + key + '$', value)
-      //   console.log(desc)
+        return
+      }).then(() => {
+        // 调用后端接口，可查验次数减一
+        instance({
+          url: 'claim/checkValidity',
+          method: 'post',
+          data: {temporaryId: this.temporaryId}
+        })
+      }).catch(error => {
+        console.log(error)
       })
     }
   },
@@ -471,14 +366,14 @@ export default {
       align-items: center
       flex-wrap: wrap
 
-      .down
+      .arrows
         width: 30px
         height: 30px
+
+      .down
         transform: rotate(90deg)
 
       .up
-        width: 30px
-        height: 30px
         transform: rotate(-90deg)
 
       .rule
@@ -497,4 +392,13 @@ export default {
       color: #fff
       font-size: 18px
 
+    .compareRes
+      .tip
+        width: 70%
+        margin: 0 auto
+        padding: 10px 15px
+        color: #fff
+        background: #57ba9e
+        border-radius: 80px
+        text-align: center
 </style>
